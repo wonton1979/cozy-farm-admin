@@ -1,18 +1,19 @@
+
 type MessagePreviewBoxProps = {
     left: number
     top: number
+    messageId:number,
+    messageIndex:number,
     visitorName: string
     messageDate: string
     image: string
+    handlerClick: (messageId: number, messageIndex: number) => void
 }
 
-export default function MessagePreviewBox({
-                                              left,
-                                              top,
-                                              visitorName,
-                                              messageDate,
-                                              image
-                                          }: MessagePreviewBoxProps) {
+export default function MessagePreviewBox({left,top,visitorName, messageId,
+                                              messageIndex,messageDate,image,
+                                              handlerClick}: MessagePreviewBoxProps) {
+
     return (
         <div
             className="absolute cursor-pointer select-none z-1"
@@ -22,6 +23,9 @@ export default function MessagePreviewBox({
                 width: "29%",
                 height: "8%",
             }}
+            onClick={()=>(
+                handlerClick(messageId,messageIndex)
+            )}
         >
             <img
                 src={`${image}-message-box.png`}

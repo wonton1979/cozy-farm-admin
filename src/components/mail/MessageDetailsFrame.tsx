@@ -1,12 +1,16 @@
+import formatMessageDate from "../../utils/formatMessageDate.ts";
+
 type MessageDetailsFrameProps = {
     left: number
     top: number
-    visitorName: string
-    messageDate: string
-    message: string
+    messageDetails: {
+        visitorName: string | null
+        messageDate: string | null
+        message: string | null
+    }
 }
 
-export default function MessageDetailsFrame({left,top,visitorName,messageDate,message}: MessageDetailsFrameProps) {
+export default function MessageDetailsFrame({left,top,messageDetails}: MessageDetailsFrameProps) {
     return (
         <div
             className="absolute select-none z-1 text-xl"
@@ -19,16 +23,16 @@ export default function MessageDetailsFrame({left,top,visitorName,messageDate,me
         >
 
             <div className="absolute left-[12%] transform translate-y-[-135%] font-hand">
-                {visitorName}
+                {messageDetails.visitorName ?? ""}
             </div>
 
             <div className="absolute  top-[10%] font-hand text-[1rem]">
-                {messageDate}
+                { messageDetails.messageDate ? formatMessageDate(messageDetails.messageDate) : ""}
             </div>
 
             <div className="mt-[4cqw] w-full">
                 <textarea
-                    value={message}
+                    value={messageDetails.message ?? ""}
                     name="message"
                     readOnly={true}
                     className="mt-[0.75cqw] h-[17cqw] w-full resize-none bg-transparent border-none outline-none
