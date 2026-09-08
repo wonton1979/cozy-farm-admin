@@ -11,6 +11,8 @@ type MessageDetails = {
     visitorName: string | null
     messageDate: string | null
     message: string | null
+    replyMessage: string | null
+    isReplied: boolean
 }
 
 export type ContactMessage = {
@@ -81,13 +83,12 @@ export const mockMessages: ContactMessage[] = [
         createdAt: "2026-09-04T21:53:00Z",
         repliedAt: null,
     },
-
     {
         id: 6,
         visitorName: "Daniel Cooper",
         visitorEmail: "daniel.cooper@example.com",
         visitorMessage:
-            "I wanted to tell you how much I enjoyed the old tractor description. It reminded me immediately of my grandfather insisting that his ancient tractor had absolutely nothing wrong with it.",
+            "I loved the old tractor joke. It reminded me immediately of my grandfather insisting that his ancient tractor had absolutely nothing wrong with it.",
         replyMessage:
             "Thank you, Daniel! That is exactly the sort of old tractor we had in mind. Jerry would definitely agree with your grandfather that a tractor is perfectly fine as long as it eventually starts!",
         status: "REPLIED",
@@ -152,43 +153,127 @@ export default function MailManagerLayout() {
             messageId: null,
             visitorName: null,
             messageDate: null,
-            message: null
+            message: null,
+            replyMessage: null,
+            isReplied: false,
         }
     );
-    const newMessages = mockMessages.filter(message => message.status === "NEW");
-    const repliedMessages = mockMessages.filter(message => message.status === "REPLIED");
+    const [replyMessage, setReplyMessage] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [messageData, setMessageData] = useState<ContactMessage[]>(mockMessages);
+
+    const newMessages = messageData.filter(message => message.status === "NEW");
+    const repliedMessages = messageData.filter(message => message.status === "REPLIED");
+
+    const isValidMessage = (message:string|null) => {
+        if(message === null) return false;
+        const trimmed = message.trim();
+        return trimmed.length >= 30 && trimmed.length <= 2000;
+    }
+
 
     function handleClickPreviewMessageBox(messageId:number,messageIndex:number) {
+        setErrorMessage("")
         setFocusedMessageIndex(messageIndex)
-        setMessageDetails({
-            messageId: messageId,
-            visitorName: mockMessages[messageId].visitorName,
-            messageDate: mockMessages[messageId].createdAt,
-            message: mockMessages[messageId].visitorMessage
-        })
+        if (messageListTab === "unreplied") {
+            setMessageDetails({
+                messageId: messageId,
+                visitorName: newMessages[messageIndex].visitorName,
+                messageDate: newMessages[messageIndex].createdAt,
+                message: newMessages[messageIndex].visitorMessage,
+                replyMessage: "",
+                isReplied: false
+            })
+            setReplyMessage("")
+            setIsSubmitting(false)
+            return
+        }
+        setMessageDetails(
+            {
+                messageId: messageId,
+                visitorName: repliedMessages[messageIndex].visitorName,
+                messageDate: repliedMessages[messageIndex].createdAt,
+                message: repliedMessages[messageIndex].visitorMessage,
+                replyMessage: repliedMessages[messageIndex].replyMessage,
+                isReplied: true
+            }
+        )
+        setReplyMessage(repliedMessages[messageIndex].replyMessage)
     }
 
     function handleMessageListTabChange(tabName:string){
         setMessageListTab(tabName)
+        setErrorMessage("")
         setFocusedMessageIndex(0)
-        tabName === "unreplied" ?
-            setMessageDetails(
-                {
-                    messageId: newMessages[0].id,
-                    visitorName: newMessages[0].visitorName,
-                    messageDate: newMessages[0].createdAt,
-                    message: newMessages[0].visitorMessage
-                }
-            ):
+        if (tabName === "unreplied") {
+            if(newMessages.length > 0){
+                setMessageDetails(
+                    {
+                        messageId: newMessages[0].id,
+                        visitorName: newMessages[0].visitorName,
+                        messageDate: newMessages[0].createdAt,
+                        message: newMessages[0].visitorMessage,
+                        replyMessage: null,
+                        isReplied: false
+                    }
+                )
+            }
+            else {
+                setMessageDetails(
+                    {
+                        messageId: null,
+                        visitorName: null,
+                        messageDate: null,
+                        message: null,
+                        replyMessage: null,
+                        isReplied: false
+                    }
+                )
+            }
+            setIsSubmitting(false)
+            setReplyMessage("")
+            return
+        }
+        if( tabName === "replied"&&repliedMessages.length > 0) {
             setMessageDetails(
                 {
                     messageId: repliedMessages[0].id,
                     visitorName: repliedMessages[0].visitorName,
                     messageDate: repliedMessages[0].createdAt,
-                    message: repliedMessages[0].visitorMessage
+                    message: repliedMessages[0].visitorMessage,
+                    replyMessage: repliedMessages[0].replyMessage,
+                    isReplied: true
                 }
             )
+            setIsSubmitting(true)
+            setReplyMessage(repliedMessages[0].replyMessage)
+            return
+        }
+    }
 
+    function handleReplyMessageSubmit(messageId: number | null){
+        if(!isValidMessage(replyMessage)){
+            setErrorMessage("Don't forget to write a reply!")
+            setIsSubmitting(false)
+            return;
+        }
+        setMessageData(
+            messageData.map((message) => {
+                if (message.id === messageId) {
+                    return {
+                        ...message,
+                        replyMessage: replyMessage,
+                        status: "REPLIED",
+                        repliedAt: new Date().toISOString(),
+                    };
+                }
+                return message;
+            })
+        );
+        setErrorMessage("")
+        setMessageListTab("replied")
+        return;
     }
 
     useEffect(() => {
@@ -198,19 +283,39 @@ export default function MailManagerLayout() {
                     messageId: newMessages[0].id,
                     visitorName: newMessages[0].visitorName,
                     messageDate: newMessages[0].createdAt,
-                    message: newMessages[0].visitorMessage
+                    message: newMessages[0].visitorMessage,
+                    replyMessage: null,
+                    isReplied: false
                 }
             )
         }
     }, []);
 
+    useEffect(() => {
+        if(isSubmitting){
+            setMessageDetails(
+                {
+                    messageId: repliedMessages[0].id,
+                    visitorName: repliedMessages[0].visitorName,
+                    messageDate: repliedMessages[0].createdAt,
+                    message: repliedMessages[0].visitorMessage,
+                    replyMessage: repliedMessages[0].replyMessage,
+                    isReplied: true
+                }
+            )
+        }
+    }, [messageData]);
 
     return (
         <div className="relative w-full h-screen overflow-hidden">
             <img src="/background-image.png" alt="Cozy Farm Post Office" className="w-full m-0 z-0 object-fill" />
             <img src="/message-tab.png" className="absolute left-[7%] top-[20%] w-[30%] h-[15%]" alt="message tab"/>
-            <img src="/message-deatils-frame.png" className="absolute left-[39.7%] top-[22%] w-[56%] h-[50%]" alt="message tab"/>
-            <img src="/reply-frame.png" className="absolute left-[39.7%] top-[68%] w-[55.55%] h-[31%]" alt="message tab"/>
+            <img src="/message-deatils-frame.png" className="absolute left-[39.7%] top-[22%] w-[56%] h-[50%]" alt="message details"/>
+            <img src="/reply-frame.png" className="absolute left-[41.7%] top-[71%] w-[51.55%] h-[26%]" alt="reply frame"/>
+            {
+                messageListTab=="unreplied" && <img src="/send-letter-button.png" className="absolute left-[80%] top-[89.7%] w-[10%] h-[5%]" alt="reply button"/>
+            }
+
             <div className="absolute left-[19%] top-[26%] w-[56%] h-[50%] font-hand">
                 {newMessages.length}
             </div>
@@ -274,7 +379,14 @@ export default function MailManagerLayout() {
             }
 
             <MessageDetailsFrame left={47.5} top={33} messageDetails={messageDetails}/>
-            <ReplyMessageFrame left={47.5} top={70}/>
+            <ReplyMessageFrame left={47.5} top={70} messageId={messageDetails.messageId} isReplied={messageDetails.isReplied}
+                               replyMessage={replyMessage}
+                               setReplyMessage={setReplyMessage}
+                               isSubmitting={isSubmitting}
+                               setIsSubmitting={setIsSubmitting}
+                               handleReplyMessageSubmit={handleReplyMessageSubmit}
+                               errorMessage={errorMessage}
+            />
         </div>
     );
 }

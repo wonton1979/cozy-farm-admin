@@ -3,13 +3,24 @@ import * as React from "react";
 type ReplyMessageFrameProps = {
     left: number
     top: number
+    messageId: number| null
+    isReplied: boolean
+    replyMessage: string | null
+    setReplyMessage: React.Dispatch<React.SetStateAction<string | null>>
+    isSubmitting: boolean
+    setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>
+    handleReplyMessageSubmit: (messageId: number | null) => void
+    errorMessage: string | null
 }
 
-export default function ReplyMessageFrame({left,top}: ReplyMessageFrameProps) {
+export default function ReplyMessageFrame({left,top,isReplied,replyMessage,setReplyMessage,messageId,
+                                              isSubmitting,setIsSubmitting,
+                                              handleReplyMessageSubmit,errorMessage}: ReplyMessageFrameProps) {
+
     const handleSubmit = (e: React.SubmitEvent) => {
-
         e.preventDefault();
-
+        setIsSubmitting(true);
+        handleReplyMessageSubmit(messageId);
     };
     return (
         <div
@@ -17,7 +28,7 @@ export default function ReplyMessageFrame({left,top}: ReplyMessageFrameProps) {
             style={{
                 left: `${left}%`,
                 top: `${top}%`,
-                width: "43%",
+                width: "40%",
                 height: "8%",
             }}
         >
@@ -26,11 +37,33 @@ export default function ReplyMessageFrame({left,top}: ReplyMessageFrameProps) {
                 <div className="mt-[4cqw] w-full">
                     <textarea
                         name="message"
+                        value={replyMessage ?? ""}
+                        onChange={(e) => setReplyMessage(e.target.value)}
+                        disabled={isReplied}
                         className="mt-[0.75cqw] h-[8cqw] w-full resize-none bg-transparent border-none outline-none
                                         font-hand text-[1rem] leading-normal"
                     />
                 </div>
+                <button type="submit" disabled={isSubmitting} className={`absolute ${isSubmitting ? "" : "cursor-pointer"}`}
+                    style={{
+                        left: "78%",
+                        top: "270%",
+                        width: "23%",
+                        height: "25%",
+                    }}
+                >
+                </button>
             </form>
+            <p
+                className="absolute text-center text-[1cqw] opacity-70"
+                style={{
+                    left: "30%",
+                    top: "276%",
+                    width: "40%",
+                }}
+            >
+                {errorMessage}
+            </p>
         </div>
     )
 }
