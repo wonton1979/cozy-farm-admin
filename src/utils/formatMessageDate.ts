@@ -35,5 +35,3 @@ export default function formatMessageDate(createdAt: string): string {
         month: "short",
     });
 }
-
-console.log(formatMessageDate("2026-09-07T12:00:00"))

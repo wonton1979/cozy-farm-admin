@@ -11,10 +11,13 @@ type ReplyMessageFrameProps = {
     setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>
     handleReplyMessageSubmit: (messageId: number | null) => void
     errorMessage: string | null
+    isDeleting: boolean
+    setIsDeleteModalOpen: React.Dispatch<React.SetStateAction<boolean>>
+    setIsDeleting: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export default function ReplyMessageFrame({left,top,isReplied,replyMessage,setReplyMessage,messageId,
-                                              isSubmitting,setIsSubmitting,
+                                              isSubmitting,setIsSubmitting,isDeleting,setIsDeleteModalOpen,setIsDeleting,
                                               handleReplyMessageSubmit,errorMessage}: ReplyMessageFrameProps) {
 
     const handleSubmit = (e: React.SubmitEvent) => {
@@ -22,6 +25,7 @@ export default function ReplyMessageFrame({left,top,isReplied,replyMessage,setRe
         setIsSubmitting(true);
         handleReplyMessageSubmit(messageId);
     };
+
     return (
         <div
             className="absolute select-none z-1 text-xl"
@@ -64,6 +68,19 @@ export default function ReplyMessageFrame({left,top,isReplied,replyMessage,setRe
             >
                 {errorMessage}
             </p>
+            <button type="button" disabled={isDeleting} onClick={()=>{
+                setIsDeleteModalOpen(true)
+                setIsDeleting(true)
+            }}
+                    className={`absolute ${isDeleting ? "" : "cursor-pointer"}`}
+                    style={{
+                        left: "73%",
+                        top: "260%",
+                        width: "35%",
+                        height: "12%",
+                    }}
+            >
+            </button>
         </div>
     )
 }

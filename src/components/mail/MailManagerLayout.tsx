@@ -3,6 +3,10 @@ import MessagePreviewBox from "./MessagePreviewBox.tsx";
 import MessageDetailsFrame from "./MessageDetailsFrame.tsx";
 import ReplyMessageFrame from "./ReplyMessageFrame.tsx";
 import formatMessageDate from "../../utils/formatMessageDate.ts";
+import LoginFrame from "./LoginFrame.tsx";
+import {Auth} from "../../auth.ts";
+import {deleteMessage, getRepliedMessages, getUnrepliedMessages, login, postReplyMessage} from "../../api.ts";
+import PaginationBar from "./PaginationBar.tsx";
 
 export type ContactMessageStatus = "NEW" | "REPLIED"
 
@@ -26,125 +30,6 @@ export type ContactMessage = {
     repliedAt: string | null
 }
 
-
-export const mockMessages: ContactMessage[] = [
-    {
-        id: 1,
-        visitorName: "Emma Chen",
-        visitorEmail: "emma.chen@example.com",
-        visitorMessage:
-            "Hi Jerry and Jane! I found Cozy Farm this evening and just wanted to say how lovely it is. I especially enjoyed meeting all the animals and discovering the little stories around the farm. Winston definitely made me laugh!",
-        replyMessage: null,
-        status: "NEW",
-        createdAt: "2026-09-06T09:42:00Z",
-        repliedAt: null,
-    },
-    {
-        id: 2,
-        visitorName: "Thomas Williams",
-        visitorEmail: "thomas.williams@example.com",
-        visitorMessage:
-            "Hello! I really like the little railway running through the farm. Is there a story behind why Jerry and Jane have their own steam train? The whole scene reminds me of places I visited when I was younger.",
-        replyMessage: null,
-        status: "NEW",
-        createdAt: "2026-09-06T08:15:00Z",
-        repliedAt: null,
-    },
-    {
-        id: 3,
-        visitorName: "Sophie Anderson",
-        visitorEmail: "sophie.anderson@example.com",
-        visitorMessage:
-            "Just a quick message to say that the artwork is beautiful. The lake, old windmill and farmhouse make the whole place feel incredibly peaceful. I hope you keep adding more little things to discover.",
-        replyMessage: null,
-        status: "NEW",
-        createdAt: "2026-09-05T19:27:00Z",
-        repliedAt: null,
-    },
-    {
-        id: 4,
-        visitorName: "Mohammed Rahman",
-        visitorEmail: "mohammed.rahman@example.com",
-        visitorMessage:
-            "Hi! My daughter and I explored Cozy Farm together and she absolutely loved the chickens. We spent far too long clicking around trying to find every animal conversation. Thank you for making something so cheerful.",
-        replyMessage: null,
-        status: "NEW",
-        createdAt: "2026-09-05T14:08:00Z",
-        repliedAt: null,
-    },
-    {
-        id: 5,
-        visitorName: "Charlotte Worthington-Smythe",
-        visitorEmail: "charlotte.ws@example.com",
-        visitorMessage:
-            "Hello Jerry and Jane. I stumbled across your farm completely by accident and ended up exploring it for much longer than I intended. There is something wonderfully relaxing about all the tiny details and quiet humour.",
-        replyMessage: null,
-        status: "NEW",
-        createdAt: "2026-09-04T21:53:00Z",
-        repliedAt: null,
-    },
-    {
-        id: 6,
-        visitorName: "Daniel Cooper",
-        visitorEmail: "daniel.cooper@example.com",
-        visitorMessage:
-            "I loved the old tractor joke. It reminded me immediately of my grandfather insisting that his ancient tractor had absolutely nothing wrong with it.",
-        replyMessage:
-            "Thank you, Daniel! That is exactly the sort of old tractor we had in mind. Jerry would definitely agree with your grandfather that a tractor is perfectly fine as long as it eventually starts!",
-        status: "REPLIED",
-        createdAt: "2026-09-03T16:34:00Z",
-        repliedAt: "2026-09-03T18:12:00Z",
-    },
-    {
-        id: 7,
-        visitorName: "Olivia Martin",
-        visitorEmail: "olivia.martin@example.com",
-        visitorMessage:
-            "The little robin watching for worms might be my favourite detail on the whole farm. Such a tiny interaction, but it made the place feel alive.",
-        replyMessage:
-            "Thank you, Olivia! Robin takes his worm-watching responsibilities extremely seriously. We're glad you found him!",
-        status: "REPLIED",
-        createdAt: "2026-09-02T11:20:00Z",
-        repliedAt: "2026-09-02T13:05:00Z",
-    },
-    {
-        id: 8,
-        visitorName: "James Patel",
-        visitorEmail: "james.patel@example.com",
-        visitorMessage:
-            "Hi Jerry and Jane! Will you be adding more places to explore around Cozy Farm in the future? I really enjoyed finding the interactive landmarks.",
-        replyMessage:
-            "Hi James! We certainly have more ideas for the farm. We don't want to rush it though—we'd rather add small things that feel like they genuinely belong here. Thanks for visiting!",
-        status: "REPLIED",
-        createdAt: "2026-08-31T20:44:00Z",
-        repliedAt: "2026-09-01T09:18:00Z",
-    },
-    {
-        id: 9,
-        visitorName: "Emily Thompson",
-        visitorEmail: "emily.thompson@example.com",
-        visitorMessage:
-            "I showed Cozy Farm to my mum and she loved the countryside atmosphere. The whole thing has such a warm storybook feeling.",
-        replyMessage:
-            "That's lovely to hear, Emily. Please tell your mum we said hello, and thank you both for spending some time at the farm!",
-        status: "REPLIED",
-        createdAt: "2026-08-29T15:12:00Z",
-        repliedAt: "2026-08-29T17:46:00Z",
-    },
-    {
-        id: 10,
-        visitorName: "Alexander Montgomery",
-        visitorEmail: "alex.montgomery@example.com",
-        visitorMessage:
-            "The farm lake is such a nice little corner. I liked the idea that nothing moves too quickly there. Sometimes websites don't need to constantly demand your attention.",
-        replyMessage:
-            "Thank you, Alexander. That quiet feeling is exactly what we wanted the lake—and really the whole farm—to have. We're very happy that came across.",
-        status: "REPLIED",
-        createdAt: "2026-08-27T10:05:00Z",
-        repliedAt: "2026-08-27T12:31:00Z",
-    },
-]
-
 export default function MailManagerLayout() {
     const [messageListTab, setMessageListTab] = useState("unreplied");
     const [focusedMessageIndex, setFocusedMessageIndex] = useState(0);
@@ -161,10 +46,18 @@ export default function MailManagerLayout() {
     const [replyMessage, setReplyMessage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [messageData, setMessageData] = useState<ContactMessage[]>(mockMessages);
-
-    const newMessages = messageData.filter(message => message.status === "NEW");
-    const repliedMessages = messageData.filter(message => message.status === "REPLIED");
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loginErrorMessage, setLoginErrorMessage] = useState<string>("");
+    const [newMessages, setNewMessages] = useState<ContactMessage[]>([]);
+    const [repliedMessages, setRepliedMessages] = useState<ContactMessage[]>([]);
+    const [totalPagesUnreplied, setTotalPagesUnreplied] = useState<number>(0);
+    const [totalPagesReplied, setTotalPagesReplied] = useState<number>(0);
+    const [currentPageNumberReplied, setCurrentPageNumberReplied] = useState<number>(0)
+    const [currentPageNumberUnreplied, setCurrentPageNumberUnreplied] = useState<number>(0)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false)
+    const [isDeleting, setIsDeleting] = useState<boolean>(false)
 
     const isValidMessage = (message:string|null) => {
         if(message === null) return false;
@@ -176,7 +69,7 @@ export default function MailManagerLayout() {
     function handleClickPreviewMessageBox(messageId:number,messageIndex:number) {
         setErrorMessage("")
         setFocusedMessageIndex(messageIndex)
-        if (messageListTab === "unreplied") {
+        if (messageListTab === "unreplied" && newMessages && newMessages.length > 0) {
             setMessageDetails({
                 messageId: messageId,
                 visitorName: newMessages[messageIndex].visitorName,
@@ -189,24 +82,27 @@ export default function MailManagerLayout() {
             setIsSubmitting(false)
             return
         }
-        setMessageDetails(
-            {
-                messageId: messageId,
-                visitorName: repliedMessages[messageIndex].visitorName,
-                messageDate: repliedMessages[messageIndex].createdAt,
-                message: repliedMessages[messageIndex].visitorMessage,
-                replyMessage: repliedMessages[messageIndex].replyMessage,
-                isReplied: true
-            }
-        )
-        setReplyMessage(repliedMessages[messageIndex].replyMessage)
+        if (messageListTab === "replied" && repliedMessages && repliedMessages.length > 0) {
+
+            setMessageDetails(
+                {
+                    messageId: messageId,
+                    visitorName: repliedMessages[messageIndex].visitorName,
+                    messageDate: repliedMessages[messageIndex].createdAt,
+                    message: repliedMessages[messageIndex].visitorMessage,
+                    replyMessage: repliedMessages[messageIndex].replyMessage,
+                    isReplied: true
+                }
+            )
+            setReplyMessage(repliedMessages[messageIndex].replyMessage)
+        }
     }
 
     function handleMessageListTabChange(tabName:string){
         setMessageListTab(tabName)
         setErrorMessage("")
         setFocusedMessageIndex(0)
-        if (tabName === "unreplied") {
+        if (tabName === "unreplied" && newMessages && newMessages.length > 0) {
             if(newMessages.length > 0){
                 setMessageDetails(
                     {
@@ -235,7 +131,7 @@ export default function MailManagerLayout() {
             setReplyMessage("")
             return
         }
-        if( tabName === "replied"&&repliedMessages.length > 0) {
+        if( tabName === "replied" && repliedMessages && repliedMessages.length > 0) {
             setMessageDetails(
                 {
                     messageId: repliedMessages[0].id,
@@ -253,58 +149,211 @@ export default function MailManagerLayout() {
     }
 
     function handleReplyMessageSubmit(messageId: number | null){
+        if(!messageId){
+            return;
+        }
+
         if(!isValidMessage(replyMessage)){
             setErrorMessage("Don't forget to write a reply!")
             setIsSubmitting(false)
             return;
         }
-        setMessageData(
-            messageData.map((message) => {
-                if (message.id === messageId) {
-                    return {
-                        ...message,
-                        replyMessage: replyMessage,
-                        status: "REPLIED",
-                        repliedAt: new Date().toISOString(),
-                    };
+
+        postReplyMessage(replyMessage,messageId).then(() => {
+            setErrorMessage("")
+            setMessageListTab("replied")
+            loadMessages(0)
+            return;
+        })
+    }
+
+    function handleDeleteMessage(messageId:number |null){
+        if(!messageId){
+            return;
+        }
+
+        deleteMessage(messageId).then(() => {
+            setIsDeleting(false)
+            loadMessages(0)
+        }).catch(
+            (response) => {
+                if (!response.ok) {
+                    setErrorMessage("Something went wrong. can't load the unreplied messages");
+                    return;
                 }
-                return message;
-            })
+            }
+        )
+    }
+
+    function loadMessages(currentPageNumber:number){
+
+        if(messageListTab === "unreplied"){
+            getUnrepliedMessages(currentPageNumber-1).then((res) => {
+                if(res.totalPages){
+                    setTotalPagesUnreplied(res.totalPages);
+                }
+                if(res.pageable){
+                    setCurrentPageNumberUnreplied(res.pageable.pageNumber+1);
+                }
+
+                if(res.content.length > 0){
+                    setNewMessages(res.content);
+                    setMessageDetails(
+                        {
+                            messageId: res.content[0].id,
+                            visitorName: res.content[0].visitorName,
+                            messageDate: res.content[0].createdAt,
+                            message: res.content[0].visitorMessage,
+                            replyMessage: null,
+                            isReplied: false
+                        }
+                    )
+                    setFocusedMessageIndex(0)
+                }
+            }).catch(
+                (response) => {
+                    if (!response.ok) {
+                        setErrorMessage("Something went wrong. can't load the unreplied messages");
+                        return;
+                    }
+                }
+            );
+        }
+        if(messageListTab === "replied") {
+            getRepliedMessages(currentPageNumber-1).then((res) => {
+                if (res.totalPages) {
+                    setTotalPagesReplied(res.totalPages);
+                }
+                if (res.pageable) {
+                    setCurrentPageNumberReplied(res.pageable.pageNumber + 1);
+                }
+                if (res.content.length > 0) {
+                    setRepliedMessages(res.content);
+                    setMessageDetails(
+                        {
+                            messageId: res.content[0].id,
+                            visitorName: res.content[0].visitorName,
+                            messageDate: res.content[0].createdAt,
+                            message: res.content[0].visitorMessage,
+                            replyMessage: res.content[0].replyMessage,
+                            isReplied: true
+                        }
+                    )
+                    setFocusedMessageIndex(0)
+                }
+            }).catch(
+                (response) => {
+                    if (!response.ok) {
+                        setErrorMessage("Something went wrong. can't load the replied message");
+                        return;
+                    }
+                }
+            );
+        }
+    }
+
+    function handleLogin(){
+        Auth.clear()
+        login({
+            email:email,
+            password:password
+        }).then((res) => {
+            if(res.token){
+                Auth.save(res.token)
+                setIsLoggedIn(true)
+                setLoginErrorMessage("")
+            }
+        }).catch(
+            (response) => {
+
+                if (response.status === 400 || response.status === 401) {
+                    setLoginErrorMessage("Invalid email or password");
+                    return;
+                }
+
+                if (!response.ok) {
+                    setLoginErrorMessage("Something went wrong. Please try again.");
+                    return;
+                }
+            }
         );
-        setErrorMessage("")
-        setMessageListTab("replied")
-        return;
+
     }
 
     useEffect(() => {
-        if(newMessages.length > 0){
-            setMessageDetails(
-                {
-                    messageId: newMessages[0].id,
-                    visitorName: newMessages[0].visitorName,
-                    messageDate: newMessages[0].createdAt,
-                    message: newMessages[0].visitorMessage,
-                    replyMessage: null,
-                    isReplied: false
-                }
-            )
+        if(!isLoggedIn){
+            return
         }
-    }, []);
 
-    useEffect(() => {
-        if(isSubmitting){
-            setMessageDetails(
-                {
-                    messageId: repliedMessages[0].id,
-                    visitorName: repliedMessages[0].visitorName,
-                    messageDate: repliedMessages[0].createdAt,
-                    message: repliedMessages[0].visitorMessage,
-                    replyMessage: repliedMessages[0].replyMessage,
-                    isReplied: true
+        getUnrepliedMessages(currentPageNumberUnreplied).then((res) => {
+            if(res.totalPages){
+                setTotalPagesUnreplied(res.totalPages);
+            }
+            if(res.pageable){
+                setCurrentPageNumberUnreplied(res.pageable.pageNumber+1);
+            }
+
+            if(res.content.length > 0){
+                setNewMessages(res.content);
+                setMessageDetails(
+                    {
+                        messageId: res.content[0].id,
+                        visitorName: res.content[0].visitorName,
+                        messageDate: res.content[0].createdAt,
+                        message: res.content[0].visitorMessage,
+                        replyMessage: null,
+                        isReplied: false
+                    }
+                )
+            }
+        }).catch(
+            (response) => {
+                if (!response.ok) {
+                    setErrorMessage("Something went wrong. can't load the unreplied messages");
+                    return;
                 }
-            )
-        }
-    }, [messageData]);
+            }
+        );
+
+        getRepliedMessages(currentPageNumberReplied).then((res) => {
+            if(res.totalPages){
+                setTotalPagesReplied(res.totalPages);
+            }
+            if(res.pageable){
+                setCurrentPageNumberReplied(res.pageable.pageNumber+1);
+            }
+            if (res.content.length > 0) {
+                setRepliedMessages(res.content);
+                setMessageDetails(
+                    {
+                        messageId: res.content[0].id,
+                        visitorName: res.content[0].visitorName,
+                        messageDate: res.content[0].createdAt,
+                        message: res.content[0].visitorMessage,
+                        replyMessage: res.content[0].replyMessage,
+                        isReplied: true
+                    }
+                )
+            }
+        }).catch(
+            (response) => {
+                if (!response.ok) {
+                    setErrorMessage("Something went wrong. can't load the replied message");
+                    return;
+                }
+            }
+        );
+
+    }, [isLoggedIn]);
+
+
+    if (!isLoggedIn) {
+        return (
+            <LoginFrame left={49} top={43} email={email} setEmail={setEmail}
+                        password={password} setPassword={setPassword} handleLogin={handleLogin}
+                        loginErrorMessage={loginErrorMessage}/>
+        )
+    }
 
     return (
         <div className="relative w-full h-screen overflow-hidden">
@@ -313,15 +362,20 @@ export default function MailManagerLayout() {
             <img src="/message-deatils-frame.png" className="absolute left-[39.7%] top-[22%] w-[56%] h-[50%]" alt="message details"/>
             <img src="/reply-frame.png" className="absolute left-[41.7%] top-[71%] w-[51.55%] h-[26%]" alt="reply frame"/>
             {
-                messageListTab=="unreplied" && <img src="/send-letter-button.png" className="absolute left-[80%] top-[89.7%] w-[10%] h-[5%]" alt="reply button"/>
+                messageListTab=="unreplied" ? <img src="/send-letter-button.png"
+                                                   className="absolute left-[80%] top-[89.7%] w-[10%] h-[5%]"
+                                                   alt="reply button"/> :
+                    <img src="/delete-letter-button.png"
+                         className="absolute left-[79.8%] top-[89%] w-[11.2%] h-[6.5%]"
+                         alt="delete letter button"/>
             }
 
-            <div className="absolute left-[19%] top-[26%] w-[56%] h-[50%] font-hand">
-                {newMessages.length}
+            <div className="absolute left-[18.8%] top-[25.5%] w-[56%] h-[50%] font-hand">
+                {newMessages && newMessages.length}
             </div>
 
             <div className="absolute left-[32.8%] top-[26%] w-[56%] h-[50%] font-hand">
-                {repliedMessages.length}
+                {repliedMessages && repliedMessages.length}
             </div>
             <button
 
@@ -337,7 +391,7 @@ export default function MailManagerLayout() {
                 className="absolute left-[23%] top-[25%] w-[14%] h-[5%] cursor-pointer"/>
 
             {
-                newMessages.length > 0 &&  messageListTab === "unreplied"
+                newMessages && newMessages.length > 0 &&  messageListTab === "unreplied"
                 && newMessages.map((newMessage,index)=>{
                     const previewBoxImage = focusedMessageIndex === index ?
                         "unreplied-focused" : "unfocused";
@@ -358,7 +412,7 @@ export default function MailManagerLayout() {
             }
 
             {
-                repliedMessages.length > 0 &&  messageListTab === "replied"
+               repliedMessages && repliedMessages.length > 0 &&  messageListTab === "replied"
                 && repliedMessages.map((newMessage,index)=>{
                     const previewBoxImage = focusedMessageIndex === index ?
                         "replied-focused" : "unfocused";
@@ -377,7 +431,14 @@ export default function MailManagerLayout() {
                     )
                 })
             }
-
+            <PaginationBar  left={17.3} top={81}
+                            totalPages={ messageListTab === "unreplied" ? totalPagesUnreplied : totalPagesReplied}
+                            currentPageNumber={messageListTab === "unreplied" ? currentPageNumberUnreplied : currentPageNumberReplied}
+                            setCurrentPageNumber={messageListTab === "unreplied" ?
+                                 setCurrentPageNumberUnreplied
+                                :setCurrentPageNumberReplied}
+                            loadMessages={loadMessages}
+            />
             <MessageDetailsFrame left={47.5} top={33} messageDetails={messageDetails}/>
             <ReplyMessageFrame left={47.5} top={70} messageId={messageDetails.messageId} isReplied={messageDetails.isReplied}
                                replyMessage={replyMessage}
@@ -386,7 +447,40 @@ export default function MailManagerLayout() {
                                setIsSubmitting={setIsSubmitting}
                                handleReplyMessageSubmit={handleReplyMessageSubmit}
                                errorMessage={errorMessage}
+                               setIsDeleteModalOpen={setIsDeleteModalOpen}
+                               isDeleting={isDeleting}
+                               setIsDeleting={setIsDeleting}
             />
+
+            {isDeleteModalOpen && <div
+                className={`absolute inset-0 z-40 flex items-center justify-center bg-black/20 backdrop-blur-sm`}
+            >
+                <img src="/delete-confirmation-modal.png" className="absolute left-[30%] top-[30%] w-[40%] h-[40%]" alt="message tab"/>
+                <button type="button"  onClick={()=>{
+                    setIsDeleteModalOpen(false)
+                    setIsDeleting(false)
+                }}
+                        className={`absolute cursor-pointer`}
+                        style={{
+                            left: "37%",
+                            top: "58%",
+                            width: "10%",
+                            height: "5%",
+                        }}
+                />
+                <button type="button"  onClick={()=>{
+                    handleDeleteMessage(messageDetails.messageId)
+                    setIsDeleteModalOpen(false)
+                }}
+                        className={`absolute cursor-pointer`}
+                        style={{
+                            left: "51%",
+                            top: "58%",
+                            width: "10%",
+                            height: "5%",
+                        }}
+                />
+            </div>}
         </div>
     );
 }
